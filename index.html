@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kōnane — The Papamū</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --basalt-deep:#14110d;
+    --basalt-mid:#1f1a13;
+    --stone-lit:#3a3024;
+    --stone-shadow:#0c0a07;
+    --sand:#e9dcc3;
+    --gold:#c99a4b;
+    --gold-bright:#e3b869;
+    --ember:#d4572a;
+    --moss:#5e6b47;
+    --coral:#f0e2cf;
+    --coral-shadow:#c9ab86;
+  }
+
+  *{box-sizing:border-box;}
+
+  html,body{
+    margin:0;
+    padding:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at 20% -10%, #241d14 0%, transparent 55%),
+      radial-gradient(ellipse at 90% 110%, #201810 0%, transparent 50%),
+      var(--basalt-deep);
+    color:var(--sand);
+    font-family:'Work Sans', sans-serif;
+  }
+
+  .wrap{
+    max-width:980px;
+    margin:0 auto;
+    padding:40px 20px 80px;
+  }
+
+  header{
+    text-align:center;
+    margin-bottom:34px;
+  }
+
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.32em;
+    text-transform:uppercase;
+    color:var(--moss);
+    margin-bottom:10px;
+  }
+
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-optical-sizing:auto;
+    font-size:clamp(2.4rem, 6vw, 3.6rem);
+    letter-spacing:0.02em;
+    margin:0 0 8px;
+    background:linear-gradient(180deg, var(--gold-bright), var(--gold) 70%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+
+  .subtitle{
+    font-family:'Fraunces', serif;
+    font-style:italic;
+    font-weight:400;
+    font-size:1.05rem;
+    color:#b8a98c;
+    max-width:520px;
+    margin:0 auto;
+    line-height:1.5;
+  }
+
+  .layout{
+    display:grid;
+    grid-template-columns: minmax(0,1fr) 260px;
+    gap:32px;
+    align-items:start;
+    margin-top:38px;
+  }
+
+  @media (max-width: 760px){
+    .layout{grid-template-columns:1fr;}
+  }
+
+  /* ---- Board ---- */
+  .board-frame{
+    background:
+      radial-gradient(ellipse at 30% 20%, #4a3d2a 0%, transparent 60%),
+      linear-gradient(155deg, var(--stone-lit), var(--basalt-mid) 55%, var(--stone-shadow));
+    border-radius:18px;
+    padding:22px;
+    box-shadow:
+      0 30px 60px -20px rgba(0,0,0,0.7),
+      inset 0 2px 0 rgba(255,255,255,0.05),
+      inset 0 -30px 50px rgba(0,0,0,0.4);
+    position:relative;
+  }
+
+  .board{
+    display:grid;
+    gap:6px;
+    aspect-ratio:1/1;
+    width:100%;
+  }
+
+  .cell{
+    position:relative;
+    border-radius:50%;
+    background:
+      radial-gradient(circle at 35% 30%, #4d4130 0%, #241d12 55%, #0c0906 100%);
+    box-shadow:
+      inset 0 3px 6px rgba(0,0,0,0.75),
+      inset 0 -1px 2px rgba(255,255,255,0.06);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:default;
+    transition:box-shadow 0.15s ease;
+  }
+
+  .cell.legal{
+    cursor:pointer;
+    box-shadow:
+      inset 0 3px 6px rgba(0,0,0,0.75),
+      0 0 0 2px var(--ember),
+      0 0 14px 2px rgba(212,87,42,0.55);
+    animation:pulse-legal 1.6s ease-in-out infinite;
+  }
+
+  @keyframes pulse-legal{
+    0%,100%{ box-shadow: inset 0 3px 6px rgba(0,0,0,0.75), 0 0 0 2px var(--ember), 0 0 10px 1px rgba(212,87,42,0.4);}
+    50%{ box-shadow: inset 0 3px 6px rgba(0,0,0,0.75), 0 0 0 2px var(--ember), 0 0 18px 4px rgba(212,87,42,0.75);}
+  }
+
+  .cell.opening-choice{
+    cursor:pointer;
+    box-shadow:
+      inset 0 3px 6px rgba(0,0,0,0.75),
+      0 0 0 2px var(--gold-bright),
+      0 0 14px 2px rgba(227,184,105,0.55);
+  }
+
+  .stone{
+    width:82%;
+    height:82%;
+    border-radius:50%;
+    position:relative;
+  }
+
+  .stone.black{
+    background:
+      radial-gradient(circle at 32% 28%, #4a4a4a 0%, #1c1c1c 45%, #050505 100%);
+    box-shadow:
+      0 3px 5px rgba(0,0,0,0.6),
+      inset 0 1px 2px rgba(255,255,255,0.15),
+      inset 0 -3px 4px rgba(0,0,0,0.6);
+  }
+
+  .stone.white{
+    background:
+      radial-gradient(circle at 32% 28%, #fff8ec 0%, var(--coral) 45%, var(--coral-shadow) 100%);
+    box-shadow:
+      0 3px 5px rgba(0,0,0,0.45),
+      inset 0 1px 2px rgba(255,255,255,0.7),
+      inset 0 -3px 5px rgba(160,130,95,0.5);
+  }
+
+  .stone.selected{
+    outline:2px solid var(--gold-bright);
+    outline-offset:3px;
+    box-shadow:0 0 12px 2px rgba(227,184,105,0.7);
+  }
+
+  .stone.piece-clickable{cursor:pointer;}
+  .stone.piece-clickable:hover{filter:brightness(1.15);}
+
+  .cell.last-from::after, .cell.last-to::after{
+    content:'';
+    position:absolute;
+    inset:6px;
+    border-radius:50%;
+    border:1.5px dashed rgba(201,154,75,0.5);
+    pointer-events:none;
+  }
+
+  /* ---- Side panel ---- */
+  .panel{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .card{
+    background:linear-gradient(160deg, #241d15, #16120c);
+    border:1px solid rgba(201,154,75,0.15);
+    border-radius:12px;
+    padding:16px 18px;
+  }
+
+  .card h2{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.24em;
+    text-transform:uppercase;
+    color:var(--moss);
+    margin:0 0 12px;
+  }
+
+  .turn-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:'Fraunces', serif;
+    font-size:1.3rem;
+  }
+
+  .turn-dot{
+    width:20px;height:20px;border-radius:50%;
+    flex-shrink:0;
+  }
+  .turn-dot.black{background:radial-gradient(circle at 35% 30%, #4a4a4a, #050505);}
+  .turn-dot.white{background:radial-gradient(circle at 35% 30%, #fff8ec, var(--coral-shadow));}
+
+  .status-line{
+    font-size:0.85rem;
+    color:#b8a98c;
+    margin-top:8px;
+    line-height:1.5;
+    min-height:2.6em;
+  }
+
+  .stat-row{
+    display:flex;
+    justify-content:space-between;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.8rem;
+    padding:5px 0;
+    border-bottom:1px solid rgba(255,255,255,0.05);
+  }
+  .stat-row:last-child{border-bottom:none;}
+  .stat-row span:last-child{color:var(--gold-bright);}
+
+  select, button{
+    font-family:'Work Sans', sans-serif;
+    font-size:0.85rem;
+    border-radius:8px;
+    border:1px solid rgba(201,154,75,0.3);
+    background:#1c1710;
+    color:var(--sand);
+    padding:9px 10px;
+    width:100%;
+    cursor:pointer;
+  }
+
+  button{
+    font-weight:600;
+    background:linear-gradient(160deg, #3a2c17, #211809);
+    border:1px solid var(--gold);
+    color:var(--gold-bright);
+    margin-top:8px;
+    transition:filter 0.15s ease;
+  }
+  button:hover{filter:brightness(1.2);}
+  button.secondary{
+    background:transparent;
+    border:1px solid rgba(201,154,75,0.35);
+    color:#b8a98c;
+  }
+
+  label.field{
+    display:block;
+    font-size:0.72rem;
+    color:var(--moss);
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    margin:10px 0 4px;
+  }
+
+  .rules-body{
+    font-size:0.82rem;
+    line-height:1.6;
+    color:#c9bda3;
+    display:none;
+  }
+  .rules-body.open{display:block;}
+  .rules-body p{margin:0 0 10px;}
+  .rules-body strong{color:var(--gold-bright);}
+
+  .winner-banner{
+    display:none;
+    text-align:center;
+    font-family:'Fraunces', serif;
+    font-size:1.4rem;
+    color:var(--gold-bright);
+    background:linear-gradient(160deg, #3a2c17, #1c1710);
+    border:1px solid var(--gold);
+    border-radius:12px;
+    padding:16px;
+    margin-bottom:20px;
+  }
+  .winner-banner.show{display:block;}
+
+  footer{
+    text-align:center;
+    margin-top:40px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.2em;
+    text-transform:uppercase;
+    color:#4a4130;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Papamū · Strategy of the Aliʻi</div>
+    <h1>Kōnane</h1>
+    <p class="subtitle">Clear a path, corner your opponent, leave them without a move. No captures required to win — only the last legal jump.</p>
+  </header>
+
+  <div id="winnerBanner" class="winner-banner"></div>
+
+  <div class="layout">
+    <div class="board-frame">
+      <div id="board" class="board"></div>
+    </div>
+
+    <div class="panel">
+      <div class="card">
+        <h2>Turn</h2>
+        <div class="turn-row">
+          <div id="turnDot" class="turn-dot black"></div>
+          <span id="turnLabel">Black opens</span>
+        </div>
+        <div id="statusLine" class="status-line">Black removes a stone from a corner or the center to begin.</div>
+      </div>
+
+      <div class="card">
+        <h2>Board</h2>
+        <div class="stat-row"><span>Black stones</span><span id="blackCount">–</span></div>
+        <div class="stat-row"><span>White stones</span><span id="whiteCount">–</span></div>
+        <div class="stat-row"><span>Move</span><span id="moveCount">0</span></div>
+      </div>
+
+      <div class="card">
+        <h2>Setup</h2>
+        <label class="field">Board size</label>
+        <select id="sizeSelect">
+          <option value="6">6 × 6</option>
+          <option value="8" selected>8 × 8</option>
+          <option value="10">10 × 10</option>
+        </select>
+        <label class="field">Opponent</label>
+        <select id="modeSelect">
+          <option value="pvp">Two players, same board</option>
+          <option value="ai">Play White as the machine</option>
+        </select>
+        <button id="newGameBtn">New game</button>
+        <button id="rulesBtn" class="secondary">How to play</button>
+      </div>
+
+      <div class="card">
+        <h2>How to play</h2>
+        <div id="rulesBody" class="rules-body">
+          <p><strong>Setup.</strong> Every space starts filled, alternating black and white.</p>
+          <p><strong>Opening.</strong> Black removes one stone from a corner or the center. White then removes a white stone directly next to that gap.</p>
+          <p><strong>Jumps.</strong> On your turn, jump one of your stones over an adjacent enemy stone into the empty space just beyond it, orthogonally only — never diagonal. The jumped stone is captured.</p>
+          <p><strong>Chains.</strong> You may keep jumping with the same stone as long as each jump is legal, but only in a straight line — no turning mid-move. Stopping early is always allowed.</p>
+          <p><strong>Winning.</strong> If you cannot make a legal jump on your turn, you lose. There are no draws and no passes.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Mālama i ka papamū</footer>
+</div>
+
+<script>
+(function(){
+  const boardEl = document.getElementById('board');
+  const turnDot = document.getElementById('turnDot');
+  const turnLabel = document.getElementById('turnLabel');
+  const statusLine = document.getElementById('statusLine');
+  const blackCountEl = document.getElementById('blackCount');
+  const whiteCountEl = document.getElementById('whiteCount');
+  const moveCountEl = document.getElementById('moveCount');
+  const winnerBanner = document.getElementById('winnerBanner');
+  const sizeSelect = document.getElementById('sizeSelect');
+  const modeSelect = document.getElementById('modeSelect');
+  const rulesBtn = document.getElementById('rulesBtn');
+  const rulesBody = document.getElementById('rulesBody');
+
+  rulesBtn.addEventListener('click', () => {
+    rulesBody.classList.toggle('open');
+    rulesBtn.textContent = rulesBody.classList.contains('open') ? 'Hide rules' : 'How to play';
+  });
+
+  const DIRS = [[-1,0],[1,0],[0,-1],[0,1]];
+
+  let n = 8;
+  let board = [];        // n x n, 'black' | 'white' | null
+  let phase = 'opening-black';   // opening-black -> opening-white -> play -> over
+  let current = 'black';
+  let mode = 'pvp';
+  let selected = null;       // {r,c}
+  let moveDir = null;        // locked direction once a chain jump begins
+  let legalTargets = [];     // list of {r,c} reachable from selected in current context
+  let moveCount = 0;
+  let lastFrom = null, lastTo = null;
+  let gameOver = false;
+  let firstRemoved = null;   // location of black's opening removal
+
+  function inBounds(r,c){ return r>=0 && r<n && c>=0 && c<n; }
+  function colorAt(r,c){ return board[r][c]; }
+  function opponent(color){ return color==='black' ? 'white' : 'black'; }
+
+  function initBoard(size){
+    n = size;
+    board = [];
+    for(let r=0;r<n;r++){
+      const row = [];
+      for(let c=0;c<n;c++){
+        row.push((r+c)%2===0 ? 'black' : 'white');
+      }
+      board.push(row);
+    }
+    phase = 'opening-black';
+    current = 'black';
+    selected = null;
+    moveDir = null;
+    legalTargets = [];
+    moveCount = 0;
+    lastFrom = null; lastTo = null;
+    gameOver = false;
+    firstRemoved = null;
+    winnerBanner.classList.remove('show');
+    boardEl.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+    boardEl.style.gridTemplateRows = `repeat(${n}, 1fr)`;
+  }
+
+  function openingSquares(){
+    // corners + center cell(s), restricted to black-colored squares
+    const squares = [];
+    const corners = [[0,0],[0,n-1],[n-1,0],[n-1,n-1]];
+    corners.forEach(([r,c]) => squares.push([r,c]));
+    if(n % 2 === 0){
+      const mid = n/2;
+      [[mid-1,mid-1],[mid-1,mid],[mid,mid-1],[mid,mid]].forEach(([r,c]) => squares.push([r,c]));
+    } else {
+      const mid = (n-1)/2;
+      squares.push([mid,mid]);
+    }
+    const seen = new Set();
+    return squares.filter(([r,c]) => {
+      const key = r+','+c;
+      if(seen.has(key)) return false;
+      seen.add(key);
+      return colorAt(r,c) === 'black';
+    });
+  }
+
+  // returns list of straight-line jump chains from (r,c) for `color`.
+  // result: array of {dir:[dr,dc], stops:[{r,c,jumps},...]} where stops are landing squares
+  // reachable by jumping 1,2,3... times in that direction.
+  function jumpChains(r, c, color){
+    const chains = [];
+    for(const [dr,dc] of DIRS){
+      const stops = [];
+      let cr = r, cc = c, jumps = 0;
+      while(true){
+        const mr = cr+dr, mc = cc+dc;         // the enemy stone to jump
+        const lr = cr+2*dr, lc = cc+2*dc;      // landing square
+        if(!inBounds(lr,lc)) break;
+        if(colorAt(mr,mc) !== opponent(color)) break;
+        if(colorAt(lr,lc) !== null) break;
+        jumps++;
+        stops.push({r:lr, c:lc, jumps, over:{r:mr,c:mc}});
+        cr = lr; cc = lc;
+      }
+      if(stops.length) chains.push({dir:[dr,dc], stops});
+    }
+    return chains;
+  }
+
+  function pieceHasMove(r,c,color){
+    return jumpChains(r,c,color).length > 0;
+  }
+
+  function playerHasAnyMove(color){
+    for(let r=0;r<n;r++) for(let c=0;c<n;c++){
+      if(colorAt(r,c)===color && pieceHasMove(r,c,color)) return true;
+    }
+    return false;
+  }
+
+  function allMovesFor(color){
+    // flat list of {r,c,dir,target,jumps,over[]} single top-level entries per possible landing
+    const moves = [];
+    for(let r=0;r<n;r++) for(let c=0;c<n;c++){
+      if(colorAt(r,c)!==color) continue;
+      const chains = jumpChains(r,c,color);
+      chains.forEach(chain => {
+        chain.stops.forEach(stop => {
+          moves.push({from:{r,c}, to:{r:stop.r,c:stop.c}, dir:chain.dir, jumps:stop.jumps});
+        });
+      });
+    }
+    return moves;
+  }
+
+  function render(){
+    boardEl.innerHTML = '';
+    for(let r=0;r<n;r++){
+      for(let c=0;c<n;c++){
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.r = r; cell.dataset.c = c;
+
+        if(lastFrom && lastFrom.r===r && lastFrom.c===c) cell.classList.add('last-from');
+        if(lastTo && lastTo.r===r && lastTo.c===c) cell.classList.add('last-to');
+
+        const isOpeningChoice = (phase==='opening-black' && openingSquares().some(([or,oc]) => or===r && oc===c) && colorAt(r,c)==='black')
+          || (phase==='opening-white' && isAdjacentToFirstRemoved(r,c) && colorAt(r,c)==='white');
+        if(isOpeningChoice) cell.classList.add('opening-choice');
+
+        const isLegalTarget = legalTargets.some(t => t.r===r && t.c===c);
+        if(isLegalTarget) cell.classList.add('legal');
+
+        const stoneColor = colorAt(r,c);
+        if(stoneColor){
+          const stone = document.createElement('div');
+          stone.className = 'stone ' + stoneColor;
+          if(selected && selected.r===r && selected.c===c) stone.classList.add('selected');
+          if(phase==='play' && !gameOver && stoneColor===current && (mode==='pvp' || current==='black')){
+            stone.classList.add('piece-clickable');
+          }
+          cell.appendChild(stone);
+        }
+
+        cell.addEventListener('click', onCellClick);
+        boardEl.appendChild(cell);
+      }
+    }
+    updateSidebar();
+  }
+
+  function isAdjacentToFirstRemoved(r,c){
+    if(!firstRemoved) return false;
+    return DIRS.some(([dr,dc]) => firstRemoved.r+dr===r && firstRemoved.c+dc===c);
+  }
+
+  function updateSidebar(){
+    let blacks=0, whites=0;
+    for(let r=0;r<n;r++) for(let c=0;c<n;c++){
+      if(colorAt(r,c)==='black') blacks++;
+      if(colorAt(r,c)==='white') whites++;
+    }
+    blackCountEl.textContent = blacks;
+    whiteCountEl.textContent = whites;
+    moveCountEl.textContent = moveCount;
+
+    turnDot.className = 'turn-dot ' + current;
+
+    if(gameOver) return;
+
+    if(phase==='opening-black'){
+      turnLabel.textContent = 'Black opens';
+      statusLine.textContent = 'Choose a corner or center black stone to remove.';
+    } else if(phase==='opening-white'){
+      turnLabel.textContent = 'White responds';
+      statusLine.textContent = 'Choose a white stone next to the gap to remove.';
+    } else {
+      turnLabel.textContent = (current==='black'?'Black':'White') + ' to move';
+      if(selected){
+        statusLine.textContent = moveDir
+          ? 'Keep jumping the same direction, or click the stone again to stop.'
+          : 'Choose a highlighted space to jump to.';
+      } else {
+        statusLine.textContent = 'Select a stone that has a legal jump.';
+      }
+    }
+  }
+
+  function onCellClick(e){
+    if(gameOver) return;
+    const r = parseInt(e.currentTarget.dataset.r, 10);
+    const c = parseInt(e.currentTarget.dataset.c, 10);
+
+    if(phase==='opening-black'){
+      const isValid = openingSquares().some(([or,oc]) => or===r && oc===c) && colorAt(r,c)==='black';
+      if(!isValid) return;
+      board[r][c] = null;
+      firstRemoved = {r,c};
+      phase = 'opening-white';
+      current = 'white';
+      render();
+      return;
+    }
+
+    if(phase==='opening-white'){
+      const isValid = isAdjacentToFirstRemoved(r,c) && colorAt(r,c)==='white';
+      if(!isValid) return;
+      board[r][c] = null;
+      phase = 'play';
+      current = 'black';
+      render();
+      return;
+    }
+
+    // ---- regular play ----
+    if(mode==='ai' && current==='white') return; // machine's turn, ignore clicks
+
+    const clickedColor = colorAt(r,c);
+
+    // clicking the already-selected piece: if mid-chain, stop the chain (ends turn);
+    // if no jump made yet, just deselect
+    if(selected && selected.r===r && selected.c===c){
+      if(moveDir){
+        finishTurnIfMoved();
+      } else {
+        selected = null;
+        legalTargets = [];
+        render();
+      }
+      return;
+    }
+
+    // clicking a legal target square -> execute the jump
+    const target = legalTargets.find(t => t.r===r && t.c===c);
+    if(selected && target){
+      executeJumpTo(target);
+      return;
+    }
+
+    // otherwise, try selecting a new piece of the current color (only allowed if no chain in progress)
+    if(moveDir) return; // mid-chain, must continue or click selected stone to stop
+    if(clickedColor !== current) return;
+    const chains = jumpChains(r,c,current);
+    if(!chains.length) return;
+
+    selected = {r,c};
+    moveDir = null;
+    legalTargets = [];
+    chains.forEach(chain => chain.stops.forEach(stop => legalTargets.push(stop)));
+    render();
+  }
+
+  function executeJumpTo(target){
+    const {r:fr, c:fc} = selected;
+    const ddr = Math.sign(target.r - fr);
+    const ddc = Math.sign(target.c - fc);
+    const movingColor = current;
+
+    // walk from selected to target in steps of 2, capturing the stone jumped at each step
+    let cr = fr, cc = fc;
+    while(cr !== target.r || cc !== target.c){
+      const mr = cr+ddr, mc = cc+ddc;
+      const lr = cr+2*ddr, lc = cc+2*ddc;
+      board[mr][mc] = null;
+      cr = lr; cc = lc;
+    }
+    board[fr][fc] = null;
+    board[target.r][target.c] = movingColor;
+
+    lastFrom = {r:fr,c:fc};
+    lastTo = {r:target.r,c:target.c};
+
+    // check whether further jumps are possible from new location, same direction only
+    const continuation = jumpChains(target.r, target.c, current).find(ch => ch.dir[0]===ddr && ch.dir[1]===ddc);
+
+    selected = {r:target.r, c:target.c};
+    moveDir = [ddr,ddc];
+
+    if(continuation && continuation.stops.length){
+      legalTargets = continuation.stops;
+      render();
+    } else {
+      finishTurnIfMoved();
+    }
+  }
+
+  function finishTurnIfMoved(){
+    selected = null;
+    moveDir = null;
+    legalTargets = [];
+    moveCount++;
+    current = opponent(current);
+
+    if(!playerHasAnyMove(current)){
+      endGame(opponent(current));
+      return;
+    }
+    render();
+
+    if(mode==='ai' && current==='white' && !gameOver){
+      setTimeout(aiMove, 550);
+    }
+  }
+
+  function aiMove(){
+    if(gameOver || current!=='white') return;
+    const moves = allMovesFor('white');
+    if(!moves.length){ endGame('black'); return; }
+    let best = moves[0];
+    moves.forEach(m => { if(m.jumps > best.jumps) best = m; });
+    const candidates = moves.filter(m => m.jumps === best.jumps);
+    const pick = candidates[Math.floor(Math.random()*candidates.length)];
+
+    selected = {r:pick.from.r, c:pick.from.c};
+    executeJumpTo({r:pick.to.r, c:pick.to.c, dir:pick.dir});
+  }
+
+  function endGame(winner){
+    gameOver = true;
+    phase = 'over';
+    selected = null; legalTargets = []; moveDir = null;
+    render();
+    winnerBanner.textContent = (winner==='black' ? 'Black' : 'White') + ' wins — the other side has no legal jump.';
+    winnerBanner.classList.add('show');
+    statusLine.textContent = 'Game over. Start a new game to play again.';
+  }
+
+  document.getElementById('newGameBtn').addEventListener('click', () => {
+    n = parseInt(sizeSelect.value, 10);
+    mode = modeSelect.value;
+    initBoard(n);
+    render();
+  });
+
+  // init
+  n = parseInt(sizeSelect.value, 10);
+  mode = modeSelect.value;
+  initBoard(n);
+  render();
+})();
+</script>
+</body>
+</html>
