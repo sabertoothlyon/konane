@@ -328,6 +328,7 @@ details.rules p { margin: 0 0 12px; color: var(--muted); font-size: 0.9rem; }
 
   <div class="under">
     <div id="lastMove"></div>
+    <button type="button" class="btn" id="endturn" hidden>End turn</button>
     <button type="button" class="btn" id="undo">Undo move</button>
   </div>
 
@@ -337,7 +338,7 @@ details.rules p { margin: 0 0 12px; color: var(--muted); font-size: 0.9rem; }
       <li>Black and white stones fill the board in a checkerboard pattern.</li>
       <li>To open, Black removes one of its own stones from a corner or the center. White then removes a stone directly beside that gap.</li>
       <li>Black moves first after that. Every move is a capture: jump one of your stones over an adjacent enemy stone, in a straight line, into the empty square just beyond it. Diagonal jumps are not allowed.</li>
-      <li>The jumped stone is removed. You may keep jumping in the same direction in the same turn, taking several stones, and you may stop after any jump. You cannot change direction mid-turn.</li>
+      <li>The jumped stone is removed. If another jump is open in the same direction, your stone stays selected: click the highlighted square to jump again, or click your stone (or End turn) to stop. You cannot change direction mid-turn.</li>
       <li>If you have no capture on your turn, you lose.</li>
     </ul>
     <p>Board sizes and small details differ from place to place. This follows the rules most commonly taught.</p>
@@ -396,6 +397,25 @@ const Konane = (function () {
       }
     }
     return out;
+  }
+  function stepTargets(b, i, only) {
+    const v = b[i];
+    if (!v) return [];
+    const opp = 3 - v, out = [];
+    const r0 = (i / N) | 0, c0 = i - r0 * N;
+    for (let d = 0; d < 4; d++) {
+      if (only >= 0 && d !== only) continue;
+      const mr = r0 + DR[d], mc = c0 + DC[d], lr = mr + DR[d], lc = mc + DC[d];
+      if (lr < 0 || lr >= N || lc < 0 || lc >= N) continue;
+      if (b[mr * N + mc] === opp && b[lr * N + lc] === 0) out.push(lr * N + lc);
+    }
+    return out;
+  }
+  function dirOf(from, to) {
+    const fr = (from / N) | 0, fc = from - fr * N, tr = (to / N) | 0, tc = to - tr * N;
+    const dr = Math.sign(tr - fr), dc = Math.sign(tc - fc);
+    for (let d = 0; d < 4; d++) if (DR[d] === dr && DC[d] === dc) return d;
+    return -1;
   }
   function genMoves(b, side) {
     const mv = [];
@@ -506,6 +526,8 @@ const Konane = (function () {
     openingBlack: openingBlack,
     openingWhite: openingWhite,
     targets: function (b, i) { return targetsFrom(b, i); },
+    stepTargets: stepTargets,
+    dirOf: dirOf,
     hasMoves: function (b, side) { for (let i = 0; i < SZ; i++) if (b[i] === side && targetsFrom(b, i).length) return true; return false; },
     play: play,
     best: best
@@ -559,7 +581,7 @@ const Konane = (function () {
     const b = Konane.startBoard(n);
     G = {
       b: b, turn: 1, phase: 'openB', gap: -1, mode: selected('mode'), human: +selected('side'), level: selected('level'),
-      over: false, msg: '', reason: '', last: null, caps: [], note: '', sel: -1, tg: [],
+      over: false, msg: '', reason: '', last: null, caps: [], note: '', sel: -1, tg: [], chain: null,
       hist: [], busy: false, token: 0
     };
     G.hist.push(snap(G));
@@ -603,6 +625,31 @@ const Konane = (function () {
     afterMove(mover);
   }
 
+  function endTurn() {
+    const mover = G.turn, c = G.chain;
+    G.last = [c.start, c.pos]; G.caps = c.rem;
+    G.note = name(mover) + ' ' + sq(c.start) + ' to ' + sq(c.pos) + ', took ' + c.rem.length;
+    G.chain = null; G.sel = -1; G.tg = [];
+    G.turn = mover === 1 ? 2 : 1;
+    afterMove(mover);
+  }
+
+  function step(from, to) {
+    const res = Konane.play(G.b, from, to);
+    if (!res) return;
+    if (!G.chain) G.chain = { start: from, pos: to, dir: Konane.dirOf(from, to), rem: [] };
+    G.chain.pos = to;
+    G.chain.rem = G.chain.rem.concat(res.rem);
+    const next = Konane.stepTargets(G.b, to, G.chain.dir);
+    if (next.length) {
+      G.sel = to; G.tg = next;
+      G.last = [G.chain.start, to]; G.caps = G.chain.rem;
+      render();
+    } else {
+      endTurn();
+    }
+  }
+
   function pickRandom(a) { return a[(Math.random() * a.length) | 0]; }
 
   function maybeAI() {
@@ -623,9 +670,10 @@ const Konane = (function () {
   }
 
   function undo() {
-    if (!G || G.busy || G.hist.length < 2) return;
+    if (!G || G.busy || (G.hist.length < 2 && !G.chain)) return;
     G.token++;
-    G.hist.pop();
+    if (!G.chain) G.hist.pop();
+    G.chain = null;
     if (G.mode === 'ai') {
       while (G.hist.length > 1 && G.hist[G.hist.length - 1].turn !== G.human) G.hist.pop();
     }
@@ -661,7 +709,7 @@ const Konane = (function () {
       const isHint = isPick || G.tg.indexOf(i) >= 0;
       if (isHint) cls += ' hint';
       if (isPick) cls += ' pick';
-      if (G.phase === 'play' && act && v === G.turn && Konane.targets(b, i).length) cls += ' movable';
+      if (G.phase === 'play' && act && !G.chain && v === G.turn && Konane.stepTargets(b, i, -1).length) cls += ' movable';
       el.className = cls;
       const moved = G.last && G.last[1] === i;
       const key = v + (moved ? 'm' : '');
@@ -678,6 +726,7 @@ const Konane = (function () {
     let main, sub = '';
     if (G.over) { main = G.msg; sub = G.reason; }
     else if (G.busy) { main = name(G.turn) + ' is thinking'; }
+    else if (G.chain) { main = name(G.turn) + ' can jump again'; sub = 'Click the highlighted square to keep jumping, or end your turn.'; }
     else if (G.phase === 'openB') {
       main = G.mode === 'ai' ? 'Your move, black' : 'Black to open';
       sub = 'Remove a black stone from a corner or the center.';
@@ -692,7 +741,8 @@ const Konane = (function () {
       '<span>' + mini(1) + 'Black <b>' + blk + '</b></span>' +
       '<span>' + mini(2) + 'White <b>' + wht + '</b></span>';
     $('lastMove').textContent = G.note ? 'Last move: ' + G.note : 'Black opens by removing a stone.';
-    $('undo').disabled = G.busy || G.hist.length < 2;
+    $('undo').disabled = G.busy || (G.hist.length < 2 && !G.chain);
+    $('endturn').hidden = !G.chain;
   }
 
   boardEl.addEventListener('click', function (e) {
@@ -703,14 +753,20 @@ const Konane = (function () {
       if (openHints().indexOf(i) >= 0) doOpening(i);
       return;
     }
-    if (G.sel >= 0 && G.tg.indexOf(i) >= 0) { doMove(G.sel, i); return; }
-    if (v === G.turn && i !== G.sel) { G.sel = i; G.tg = Konane.targets(G.b, i); }
+    if (G.chain) {
+      if (G.tg.indexOf(i) >= 0) step(G.sel, i);
+      else if (i === G.chain.pos) endTurn();
+      return;
+    }
+    if (G.sel >= 0 && G.tg.indexOf(i) >= 0) { step(G.sel, i); return; }
+    if (v === G.turn && i !== G.sel) { G.sel = i; G.tg = Konane.stepTargets(G.b, i, -1); }
     else { G.sel = -1; G.tg = []; }
     render();
   });
   $('setup').addEventListener('change', newGame);
   $('newgame').addEventListener('click', newGame);
   $('undo').addEventListener('click', undo);
+  $('endturn').addEventListener('click', function () { if (G && G.chain) endTurn(); });
   newGame();
 })();
 </script>
