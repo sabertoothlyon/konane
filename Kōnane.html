@@ -1,0 +1,718 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Kōnane</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Marcellus&display=swap" rel="stylesheet">
+<style>
+/* Layout: one centered column. Title, setup bar, note, status strip, papamu board with labels, undo row, rules drawer. */
+:root {
+  --display: 'Marcellus', 'Palatino Linotype', Georgia, serif;
+  --body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --bg: #e7ebe8;
+  --fg: #19211f;
+  --muted: #53605b;
+  --panel: #f4f7f5;
+  --panel-line: #c5cdc9;
+  --board: #8f9c94;
+  --pit: #77867d;
+  --pit-edge: #66756c;
+  --line: #7b8a81;
+  --frame: #3f4b46;
+  --blk-rim: rgba(255, 255, 255, 0.2);
+  --wht-rim: rgba(90, 78, 56, 0.5);
+  --accent: #0d6b75;
+  --accent-ink: #ffffff;
+  --hint: rgba(13, 107, 117, 0.65);
+  --last: rgba(13, 107, 117, 0.22);
+  --focus: #0d6b75;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1513;
+    --fg: #e2ebe7;
+    --muted: #93a49d;
+    --panel: #16201d;
+    --panel-line: #2a3a35;
+    --board: #3b4943;
+    --pit: #2d3934;
+    --pit-edge: #4a5a53;
+    --line: #34413b;
+    --frame: #55655e;
+    --blk-rim: rgba(255, 255, 255, 0.38);
+    --wht-rim: rgba(60, 50, 30, 0.55);
+    --accent: #54c4ce;
+    --accent-ink: #04161a;
+    --hint: rgba(84, 196, 206, 0.7);
+    --last: rgba(84, 196, 206, 0.2);
+    --focus: #54c4ce;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1513;
+  --fg: #e2ebe7;
+  --muted: #93a49d;
+  --panel: #16201d;
+  --panel-line: #2a3a35;
+  --board: #3b4943;
+  --pit: #2d3934;
+  --pit-edge: #4a5a53;
+  --line: #34413b;
+  --frame: #55655e;
+  --blk-rim: rgba(255, 255, 255, 0.38);
+  --wht-rim: rgba(60, 50, 30, 0.55);
+  --accent: #54c4ce;
+  --accent-ink: #04161a;
+  --hint: rgba(84, 196, 206, 0.7);
+  --last: rgba(84, 196, 206, 0.2);
+  --focus: #54c4ce;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 15px/1.5 var(--body);
+}
+main {
+  max-width: 680px;
+  margin: 0 auto;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+header h1 {
+  margin: 0;
+  font: 400 clamp(2.2rem, 8vw, 3.2rem)/1.05 var(--display);
+  letter-spacing: 0.01em;
+}
+header p { margin: 6px 0 0; color: var(--muted); }
+
+.setup { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: 0.72rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
+.sel {
+  font: 500 0.92rem var(--body);
+  padding: 8px 12px;
+  border: 1px solid var(--panel-line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--fg);
+  min-height: 38px;
+}
+.sel:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.segrow {
+  display: inline-flex;
+  border: 1px solid var(--panel-line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--panel);
+}
+.segrow input { position: absolute; opacity: 0; pointer-events: none; }
+.segrow label {
+  padding: 8px 13px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.92rem;
+  border-right: 1px solid var(--panel-line);
+  user-select: none;
+}
+.segrow label:last-of-type { border-right: 0; }
+.segrow input:checked + label { background: var(--accent); color: var(--accent-ink); }
+.segrow input:focus-visible + label { outline: 2px solid var(--focus); outline-offset: -3px; }
+button.btn {
+  font: 600 0.92rem var(--body);
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-line);
+  background: var(--panel);
+  color: var(--fg);
+  cursor: pointer;
+}
+button.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button.btn:disabled { opacity: 0.45; cursor: default; }
+button.btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.note { margin: -4px 0 0; color: var(--muted); font-size: 0.9rem; }
+
+/* stones, shared by the board and the legend icons */
+.st {
+  position: absolute;
+  inset: 11%;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+}
+.st.blk {
+  background: radial-gradient(circle at 34% 28%, #6c7378 0 6%, #2b3033 30%, #0c0e0f 78%);
+  box-shadow: inset 0 0 0 1.5px var(--blk-rim), 0 2px 3px rgba(0, 0, 0, 0.45);
+}
+.st.wht {
+  background: radial-gradient(circle at 34% 28%, #ffffff 0 8%, #f4eee0 36%, #d5ccb4 86%);
+  box-shadow: inset 0 0 0 1.5px var(--wht-rim), 0 2px 3px rgba(0, 0, 0, 0.35);
+}
+.st.moved { animation: settle 0.22s ease-out; }
+@keyframes settle { from { transform: scale(1.16); } to { transform: scale(1); } }
+.mini { position: relative; display: inline-block; width: 20px; height: 20px; flex: none; }
+.mini .st { inset: 0; }
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--panel-line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.status.over { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.turn { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.turn .mini { width: 30px; height: 30px; }
+#statusMain { font-weight: 600; font-size: 1.02rem; }
+#statusSub { color: var(--muted); font-size: 0.88rem; min-height: 1.3em; }
+.tally { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 0.88rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tally span { display: inline-flex; align-items: center; gap: 6px; }
+.tally b { color: var(--fg); }
+
+.boardwrap {
+  display: grid;
+  grid-template-columns: 1.5em minmax(0, 1fr);
+  grid-template-rows: auto 1.6em;
+}
+.ranks, .files { display: grid; font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ranks { grid-template-rows: repeat(var(--n, 8), 1fr); }
+.files { grid-template-columns: repeat(var(--n, 8), 1fr); grid-column: 2; }
+.ranks span, .files span { display: grid; place-items: center; }
+.ranks span { padding-right: 4px; }
+.board {
+  display: grid;
+  grid-template: repeat(var(--n, 8), 1fr) / repeat(var(--n, 8), 1fr);
+  aspect-ratio: 1;
+  background: var(--board);
+  border: 4px solid var(--frame);
+  border-radius: 8px;
+}
+.cell {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  cursor: pointer;
+  background: radial-gradient(circle, var(--pit) 0 36%, var(--pit-edge) 37% 41%, transparent 42%);
+  box-shadow: inset 0 0 0 0.5px var(--line);
+  -webkit-tap-highlight-color: transparent;
+}
+.cell:focus-visible { outline: 2px solid var(--focus); outline-offset: -3px; z-index: 3; }
+.cell.last::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--last);
+}
+.cell.took::before {
+  content: "";
+  position: absolute;
+  inset: 20%;
+  border-radius: 50%;
+  border: 2px dashed var(--accent);
+  opacity: 0.8;
+}
+.cell.sel { box-shadow: inset 0 0 0 3px var(--accent); }
+.cell.movable .st { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cell.hint::after {
+  content: "";
+  position: absolute;
+  inset: 34%;
+  border-radius: 50%;
+  background: var(--hint);
+  z-index: 2;
+  pointer-events: none;
+}
+.cell.hint.pick::after { inset: 8%; background: transparent; border: 3px solid var(--hint); }
+.board.over .cell { cursor: default; }
+.board.busy .cell { cursor: progress; }
+@media (prefers-reduced-motion: reduce) { .st.moved { animation: none; } }
+
+.under { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+#lastMove { color: var(--muted); font-size: 0.88rem; min-height: 1.3em; }
+
+details.rules {
+  border: 1px solid var(--panel-line);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 4px 14px;
+}
+details.rules summary { cursor: pointer; font-weight: 600; padding: 10px 0; }
+details.rules summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+details.rules ul { margin: 0 0 12px; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+details.rules p { margin: 0 0 12px; color: var(--muted); font-size: 0.9rem; }
+</style>
+
+<main>
+  <header>
+    <h1>Kōnane</h1>
+    <p>Hawaiian checkers. Jump to capture, and the last player able to move wins.</p>
+  </header>
+
+  <form class="setup" id="setup" onsubmit="return false">
+    <fieldset>
+      <legend><label for="size">Board</label></legend>
+      <select class="sel" id="size">
+        <option value="6">6 x 6, quick</option>
+        <option value="8" selected>8 x 8</option>
+        <option value="10">10 x 10</option>
+        <option value="12">12 x 12, long</option>
+      </select>
+    </fieldset>
+    <fieldset>
+      <legend>Opponent</legend>
+      <div class="segrow">
+        <input type="radio" name="mode" id="mode-ai" value="ai" checked><label for="mode-ai">Computer</label>
+        <input type="radio" name="mode" id="mode-two" value="two"><label for="mode-two">Second player</label>
+      </div>
+    </fieldset>
+    <fieldset id="fs-side">
+      <legend>You play</legend>
+      <div class="segrow">
+        <input type="radio" name="side" id="side-blk" value="1" checked><label for="side-blk">Black</label>
+        <input type="radio" name="side" id="side-wht" value="2"><label for="side-wht">White</label>
+      </div>
+    </fieldset>
+    <fieldset id="fs-level">
+      <legend>Strength</legend>
+      <div class="segrow">
+        <input type="radio" name="level" id="lv-easy" value="easy"><label for="lv-easy">Easy</label>
+        <input type="radio" name="level" id="lv-med" value="medium" checked><label for="lv-med">Medium</label>
+        <input type="radio" name="level" id="lv-hard" value="hard"><label for="lv-hard">Hard</label>
+      </div>
+    </fieldset>
+    <button type="button" class="btn primary" id="newgame">New game</button>
+  </form>
+  <p class="note">Kōnane is traditionally played on a stone board with black basalt and white coral pebbles.</p>
+
+  <section class="status" id="statusBox" aria-live="polite">
+    <div class="turn">
+      <span class="mini" id="turnIcon"></span>
+      <div>
+        <div id="statusMain"></div>
+        <div id="statusSub"></div>
+      </div>
+    </div>
+    <div class="tally" id="tally"></div>
+  </section>
+
+  <div class="boardwrap" id="boardwrap">
+    <div class="ranks" id="ranks" aria-hidden="true"></div>
+    <div class="board" id="board" role="group" aria-label="Kōnane board"></div>
+    <div class="files" id="files" aria-hidden="true"></div>
+  </div>
+
+  <div class="under">
+    <div id="lastMove"></div>
+    <button type="button" class="btn" id="undo">Undo move</button>
+  </div>
+
+  <details class="rules">
+    <summary>How the game works</summary>
+    <ul>
+      <li>Black and white stones fill the board in a checkerboard pattern.</li>
+      <li>To open, Black removes one of its own stones from a corner or the center. White then removes a stone directly beside that gap.</li>
+      <li>Black moves first after that. Every move is a capture: jump one of your stones over an adjacent enemy stone, in a straight line, into the empty square just beyond it. Diagonal jumps are not allowed.</li>
+      <li>The jumped stone is removed. You may keep jumping in the same direction in the same turn, taking several stones, and you may stop after any jump. You cannot change direction mid-turn.</li>
+      <li>If you have no capture on your turn, you lose.</li>
+    </ul>
+    <p>Board sizes and small details differ from place to place. This follows the rules most commonly taught.</p>
+  </details>
+</main>
+
+<script>
+// ==ENGINE-START==
+const Konane = (function () {
+  const BLK = 1, WHT = 2, WIN = 100000;
+  const DR = [-1, 1, 0, 0], DC = [0, 0, -1, 1];
+  const LEVELS = {
+    easy:   { depth: 1, noise: 45, ms: 300 },
+    medium: { depth: 3, noise: 6,  ms: 900 },
+    hard:   { depth: 12, noise: 0, ms: 1800 }
+  };
+  const TIMEOUT = { timeout: true };
+  let N = 8, SZ = 64, nodes = 0, deadline = 0;
+
+  function setSize(n) { N = n; SZ = n * n; }
+  function startBoard(n) {
+    if (n) setSize(n);
+    const b = new Int8Array(SZ);
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) b[r * N + c] = ((r + c) % 2 === 0) ? BLK : WHT;
+    return b;
+  }
+  function openingBlack(b) {
+    const set = {}, out = [];
+    const cand = [0, N - 1, (N - 1) * N, N * N - 1];
+    const h = N / 2;
+    if (N % 2 === 0) cand.push((h - 1) * N + h - 1, (h - 1) * N + h, h * N + h - 1, h * N + h);
+    cand.forEach(function (i) { if (b[i] === BLK && !set[i]) { set[i] = 1; out.push(i); } });
+    return out;
+  }
+  function openingWhite(b, gap) {
+    const r = (gap / N) | 0, c = gap - r * N, out = [];
+    for (let d = 0; d < 4; d++) {
+      const nr = r + DR[d], nc = c + DC[d];
+      if (nr >= 0 && nr < N && nc >= 0 && nc < N && b[nr * N + nc] === WHT) out.push(nr * N + nc);
+    }
+    return out;
+  }
+  function targetsFrom(b, i) {
+    const v = b[i];
+    if (!v) return [];
+    const opp = 3 - v, out = [];
+    const r0 = (i / N) | 0, c0 = i - r0 * N;
+    for (let d = 0; d < 4; d++) {
+      let r = r0, c = c0;
+      for (;;) {
+        const mr = r + DR[d], mc = c + DC[d], lr = mr + DR[d], lc = mc + DC[d];
+        if (lr < 0 || lr >= N || lc < 0 || lc >= N) break;
+        if (b[mr * N + mc] !== opp || b[lr * N + lc] !== 0) break;
+        out.push(lr * N + lc);
+        r = lr; c = lc;
+      }
+    }
+    return out;
+  }
+  function genMoves(b, side) {
+    const mv = [];
+    for (let i = 0; i < SZ; i++) {
+      if (b[i] !== side) continue;
+      const t = targetsFrom(b, i);
+      for (let k = 0; k < t.length; k++) mv.push(i * SZ + t[k]);
+    }
+    return mv;
+  }
+  function countMoves(b, side) {
+    let n = 0;
+    for (let i = 0; i < SZ; i++) if (b[i] === side) n += targetsFrom(b, i).length;
+    return n;
+  }
+  function make(b, m) {
+    const from = (m / SZ) | 0, to = m - from * SZ;
+    const side = b[from];
+    const fr = (from / N) | 0, fc = from - fr * N, tr = (to / N) | 0, tc = to - tr * N;
+    const dr = Math.sign(tr - fr), dc = Math.sign(tc - fc);
+    const rem = [];
+    const jumps = (Math.abs(tr - fr) + Math.abs(tc - fc)) / 2;
+    for (let k = 0; k < jumps; k++) {
+      const s = (fr + dr * (2 * k + 1)) * N + fc + dc * (2 * k + 1);
+      rem.push(s);
+      b[s] = 0;
+    }
+    b[from] = 0; b[to] = side;
+    return { from: from, to: to, side: side, rem: rem };
+  }
+  function undo(b, inf) {
+    b[inf.to] = 0; b[inf.from] = inf.side;
+    for (let i = 0; i < inf.rem.length; i++) b[inf.rem[i]] = 3 - inf.side;
+  }
+  function evaluate(b, side) {
+    const bm = countMoves(b, BLK), wm = countMoves(b, WHT);
+    if (side === BLK && bm === 0) return -WIN;
+    if (side === WHT && wm === 0) return WIN;
+    return (bm - wm) * 10;
+  }
+  function search(b, depth, alpha, beta, side, ply) {
+    if ((++nodes & 511) === 0 && Date.now() > deadline) throw TIMEOUT;
+    if (depth === 0) return evaluate(b, side);
+    const moves = genMoves(b, side);
+    if (moves.length === 0) return side === BLK ? -WIN + ply : WIN - ply;
+    const max = side === BLK, opp = 3 - side;
+    let best = max ? -Infinity : Infinity;
+    for (let k = 0; k < moves.length; k++) {
+      const inf = make(b, moves[k]);
+      const sc = search(b, depth - 1, alpha, beta, opp, ply + 1);
+      undo(b, inf);
+      if (max) { if (sc > best) best = sc; if (best > alpha) alpha = best; }
+      else { if (sc < best) best = sc; if (best < beta) beta = best; }
+      if (alpha >= beta) break;
+    }
+    return best;
+  }
+  function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0, t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+  }
+  function best(board, side, level) {
+    const cfg = LEVELS[level] || LEVELS.medium;
+    const b = board.slice();
+    let moves = genMoves(b, side);
+    if (!moves.length) return null;
+    shuffle(moves);
+    const opp = 3 - side;
+    deadline = Date.now() + cfg.ms; nodes = 0;
+    let bestMove = moves[0];
+    try {
+      for (let depth = 1; depth <= cfg.depth; depth++) {
+        let iterBest = null, iterScore = side === BLK ? -Infinity : Infinity;
+        let alpha = -Infinity, beta = Infinity;
+        const sc = [];
+        for (let k = 0; k < moves.length; k++) {
+          const inf = make(b, moves[k]);
+          const s = search(b, depth - 1, alpha, beta, opp, 1);
+          undo(b, inf);
+          sc.push(s);
+          const noisy = s + (cfg.noise ? (Math.random() - 0.5) * 2 * cfg.noise : 0);
+          if (side === BLK ? noisy > iterScore : noisy < iterScore) { iterScore = noisy; iterBest = moves[k]; }
+          if (!cfg.noise) {
+            if (side === BLK) { if (s > alpha) alpha = s; } else { if (s < beta) beta = s; }
+          }
+        }
+        bestMove = iterBest;
+        if (Math.abs(iterScore) > WIN / 2) break;
+        const idx = moves.map(function (_, i) { return i; });
+        idx.sort(function (x, y) { return side === BLK ? sc[y] - sc[x] : sc[x] - sc[y]; });
+        moves = idx.map(function (i) { return moves[i]; });
+      }
+    } catch (e) { if (e !== TIMEOUT) throw e; }
+    const from = (bestMove / SZ) | 0;
+    return { from: from, to: bestMove - from * SZ };
+  }
+  function play(b, from, to) {
+    if (!b[from]) return null;
+    if (targetsFrom(b, from).indexOf(to) < 0) return null;
+    const inf = make(b, from * SZ + to);
+    return { rem: inf.rem };
+  }
+  return {
+    BLK: BLK, WHT: WHT,
+    setSize: setSize,
+    startBoard: startBoard,
+    openingBlack: openingBlack,
+    openingWhite: openingWhite,
+    targets: function (b, i) { return targetsFrom(b, i); },
+    hasMoves: function (b, side) { for (let i = 0; i < SZ; i++) if (b[i] === side && targetsFrom(b, i).length) return true; return false; },
+    play: play,
+    best: best
+  };
+})();
+// ==ENGINE-END==
+
+(function () {
+  const $ = function (id) { return document.getElementById(id); };
+  const boardEl = $('board');
+  const FILES = 'abcdefghijkl';
+  const KIND = { 1: 'blk', 2: 'wht' };
+  function stone(v, extra) { return '<i class="st ' + KIND[v] + (extra || '') + '"></i>'; }
+  function mini(v) { return '<span class="mini">' + stone(v) + '</span>'; }
+  function name(s) { return s === 1 ? 'Black' : 'White'; }
+  function selected(n) { return document.querySelector('input[name=' + n + ']:checked').value; }
+
+  let cells = [], N = 0, G = null;
+  function sq(i) { return FILES[i % N] + (N - ((i / N) | 0)); }
+
+  function buildBoard(n) {
+    N = n;
+    $('boardwrap').style.setProperty('--n', n);
+    boardEl.innerHTML = ''; $('ranks').innerHTML = ''; $('files').innerHTML = '';
+    cells = [];
+    for (let i = 0; i < n * n; i++) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.i = i;
+      boardEl.appendChild(b);
+      cells.push(b);
+    }
+    for (let r = 0; r < n; r++) {
+      const s = document.createElement('span'); s.textContent = n - r; $('ranks').appendChild(s);
+      const f = document.createElement('span'); f.textContent = FILES[r]; $('files').appendChild(f);
+    }
+  }
+
+  function snap(g) {
+    return {
+      b: g.b.slice(), turn: g.turn, phase: g.phase, gap: g.gap,
+      last: g.last, caps: g.caps.slice(), note: g.note
+    };
+  }
+
+  function newGame() {
+    const n = +$('size').value;
+    Konane.setSize(n);
+    if (n !== N) buildBoard(n);
+    cells.forEach(function (el) { el.dataset.k = ''; });
+    const b = Konane.startBoard(n);
+    G = {
+      b: b, turn: 1, phase: 'openB', gap: -1, mode: selected('mode'), human: +selected('side'), level: selected('level'),
+      over: false, msg: '', reason: '', last: null, caps: [], note: '', sel: -1, tg: [],
+      hist: [], busy: false, token: 0
+    };
+    G.hist.push(snap(G));
+    $('fs-side').hidden = $('fs-level').hidden = G.mode !== 'ai';
+    render();
+    maybeAI();
+  }
+
+  function finish(msg, reason) { G.over = true; G.msg = msg; G.reason = reason; }
+
+  function afterMove(mover) {
+    G.hist.push(snap(G));
+    if (G.phase === 'play' && !Konane.hasMoves(G.b, G.turn)) {
+      finish(name(mover) + ' wins', name(G.turn) + ' has no capture.');
+    }
+    render();
+    maybeAI();
+  }
+
+  function doOpening(i) {
+    const mover = G.turn;
+    G.b[i] = 0;
+    G.last = null; G.caps = [i]; G.sel = -1; G.tg = [];
+    if (G.phase === 'openB') {
+      G.gap = i; G.phase = 'openW'; G.turn = 2;
+      G.note = 'Black removed ' + sq(i);
+    } else {
+      G.phase = 'play'; G.turn = 1;
+      G.note = 'White removed ' + sq(i);
+    }
+    afterMove(mover);
+  }
+
+  function doMove(from, to) {
+    const mover = G.turn;
+    const res = Konane.play(G.b, from, to);
+    if (!res) return;
+    G.last = [from, to]; G.caps = res.rem; G.sel = -1; G.tg = [];
+    G.note = name(mover) + ' ' + sq(from) + ' to ' + sq(to) + ', took ' + res.rem.length;
+    G.turn = mover === 1 ? 2 : 1;
+    afterMove(mover);
+  }
+
+  function pickRandom(a) { return a[(Math.random() * a.length) | 0]; }
+
+  function maybeAI() {
+    if (G.over || G.mode !== 'ai' || G.turn === G.human) return;
+    const g = G, t = g.token;
+    g.busy = true;
+    render();
+    setTimeout(function () {
+      if (G !== g || g.token !== t) return;
+      g.busy = false;
+      if (g.phase === 'openB') doOpening(pickRandom(Konane.openingBlack(g.b)));
+      else if (g.phase === 'openW') doOpening(pickRandom(Konane.openingWhite(g.b, g.gap)));
+      else {
+        const m = Konane.best(g.b, g.turn, g.level);
+        if (m) doMove(m.from, m.to); else render();
+      }
+    }, 350);
+  }
+
+  function undo() {
+    if (!G || G.busy || G.hist.length < 2) return;
+    G.token++;
+    G.hist.pop();
+    if (G.mode === 'ai') {
+      while (G.hist.length > 1 && G.hist[G.hist.length - 1].turn !== G.human) G.hist.pop();
+    }
+    const s = G.hist[G.hist.length - 1];
+    G.b = s.b.slice(); G.turn = s.turn; G.phase = s.phase; G.gap = s.gap;
+    G.last = s.last; G.caps = s.caps.slice(); G.note = s.note;
+    G.over = false; G.msg = ''; G.reason = ''; G.sel = -1; G.tg = [];
+    render();
+    maybeAI();
+  }
+
+  function canAct() { return !G.over && !G.busy && (G.mode === 'two' || G.turn === G.human); }
+  function openHints() {
+    if (!canAct()) return [];
+    if (G.phase === 'openB') return Konane.openingBlack(G.b);
+    if (G.phase === 'openW') return Konane.openingWhite(G.b, G.gap);
+    return [];
+  }
+
+  function render() {
+    const b = G.b;
+    const act = canAct();
+    const picks = openHints();
+    let blk = 0, wht = 0;
+    for (let i = 0; i < b.length; i++) { if (b[i] === 1) blk++; else if (b[i] === 2) wht++; }
+    for (let i = 0; i < cells.length; i++) {
+      const el = cells[i], v = b[i];
+      let cls = 'cell';
+      if (G.last && (G.last[0] === i || G.last[1] === i)) cls += ' last';
+      if (G.caps.indexOf(i) >= 0 && !v) cls += ' took';
+      if (G.sel === i) cls += ' sel';
+      const isPick = picks.indexOf(i) >= 0;
+      const isHint = isPick || G.tg.indexOf(i) >= 0;
+      if (isHint) cls += ' hint';
+      if (isPick) cls += ' pick';
+      if (G.phase === 'play' && act && v === G.turn && Konane.targets(b, i).length) cls += ' movable';
+      el.className = cls;
+      const moved = G.last && G.last[1] === i;
+      const key = v + (moved ? 'm' : '');
+      if (el.dataset.k !== key) {
+        el.dataset.k = key;
+        el.innerHTML = v ? stone(v, moved ? ' moved' : '') : '';
+      }
+      el.setAttribute('aria-label', sq(i) + (v ? ', ' + name(v).toLowerCase() + ' stone' : ', empty') + (isHint ? ', choice' : ''));
+    }
+    boardEl.className = 'board' + (G.over ? ' over' : '') + (G.busy ? ' busy' : '');
+    $('statusBox').className = 'status' + (G.over ? ' over' : '');
+    $('turnIcon').innerHTML = stone(G.turn);
+
+    let main, sub = '';
+    if (G.over) { main = G.msg; sub = G.reason; }
+    else if (G.busy) { main = name(G.turn) + ' is thinking'; }
+    else if (G.phase === 'openB') {
+      main = G.mode === 'ai' ? 'Your move, black' : 'Black to open';
+      sub = 'Remove a black stone from a corner or the center.';
+    } else if (G.phase === 'openW') {
+      main = G.mode === 'ai' ? 'Your move, white' : 'White to open';
+      sub = 'Remove a white stone beside the gap.';
+    } else if (G.mode === 'ai') { main = 'Your move, ' + name(G.human).toLowerCase(); sub = 'Choose a stone to capture with.'; }
+    else { main = name(G.turn) + ' to move'; sub = 'Choose a stone to capture with.'; }
+    $('statusMain').textContent = main;
+    $('statusSub').textContent = sub;
+    $('tally').innerHTML =
+      '<span>' + mini(1) + 'Black <b>' + blk + '</b></span>' +
+      '<span>' + mini(2) + 'White <b>' + wht + '</b></span>';
+    $('lastMove').textContent = G.note ? 'Last move: ' + G.note : 'Black opens by removing a stone.';
+    $('undo').disabled = G.busy || G.hist.length < 2;
+  }
+
+  boardEl.addEventListener('click', function (e) {
+    const btn = e.target.closest('.cell');
+    if (!btn || !G || !canAct()) return;
+    const i = +btn.dataset.i, v = G.b[i];
+    if (G.phase !== 'play') {
+      if (openHints().indexOf(i) >= 0) doOpening(i);
+      return;
+    }
+    if (G.sel >= 0 && G.tg.indexOf(i) >= 0) { doMove(G.sel, i); return; }
+    if (v === G.turn && i !== G.sel) { G.sel = i; G.tg = Konane.targets(G.b, i); }
+    else { G.sel = -1; G.tg = []; }
+    render();
+  });
+  $('setup').addEventListener('change', newGame);
+  $('newgame').addEventListener('click', newGame);
+  $('undo').addEventListener('click', undo);
+  newGame();
+})();
+</script>
+
+</body></html>
